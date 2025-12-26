@@ -6,30 +6,159 @@ from groq import Groq
 # ----------------------------
 st.set_page_config(page_title="Multi-Tool AI App", page_icon="🧰", layout="centered")
 st.title("🧰 Multi-Tool AI App")
-st.caption("Text Summarizer . Idea Generator . Simple Chatbot (User enters Groq API key manually)")
+st.caption("Summarizer . Idea Generator . Simple Chatbot")
 
 # ----------------------------
-# Sidebar: API key + settings
+# Helpers
+# ----------------------------
+def ui_link_button(label: str, url: str) -> None:
+    """Streamlit link button with a safe fallback for older Streamlit versions."""
+    if hasattr(st, "link_button"):
+        st.link_button(label, url, use_container_width=True)
+    else:
+        st.markdown(f"[{label}]({url})")
+
+PROVIDERS = {
+    "Groq": {
+        "create_key_url": "https://console.groq.com/keys",
+        "key_label": "Groq API key",
+        "key_hint": "gsk_...",
+        "steps": [
+            "Open Groq API Keys page",
+            "Log in / create account",
+            "Click “Create API Key”",
+            "Copy the key",
+            "Paste it in the box above",
+        ],
+    },
+    "Google AI Studio (Gemini)": {
+        "create_key_url": "https://aistudio.google.com/app/apikey",
+        "key_label": "Gemini API key",
+        "key_hint": "AI Studio key",
+        "steps": [
+            "Open Google AI Studio API key page",
+            "Sign in with Google",
+            "Create / view API key",
+            "Copy the key",
+            "Paste it in the box above",
+        ],
+    },
+    "OpenAI": {
+        "create_key_url": "https://platform.openai.com/api-keys",
+        "key_label": "OpenAI API key",
+        "key_hint": "sk-...",
+        "steps": [
+            "Open OpenAI API keys page",
+            "Log in",
+            "Create a new API key",
+            "Copy it (you may not see it again)",
+            "Paste it in the box above",
+        ],
+    },
+    "Anthropic (Claude)": {
+        "create_key_url": "https://console.anthropic.com/",
+        "key_label": "Anthropic API key",
+        "key_hint": "sk-ant-...",
+        "steps": [
+            "Open Anthropic Console",
+            "Log in / create account",
+            "Go to “API Keys” in the console",
+            "Create a key and copy it",
+            "Paste it in the box above",
+        ],
+    },
+    "Mistral": {
+        "create_key_url": "https://console.mistral.ai/",
+        "key_label": "Mistral API key",
+        "key_hint": "mistral_...",
+        "steps": [
+            "Open Mistral Console",
+            "Log in / create account",
+            "Go to Workspace → API keys",
+            "Create a new key and copy it",
+            "Paste it in the box above",
+        ],
+    },
+    "Cohere": {
+        "create_key_url": "https://dashboard.cohere.com/api-keys",
+        "key_label": "Cohere API key",
+        "key_hint": "co_...",
+        "steps": [
+            "Open Cohere API Keys page",
+            "Log in / create account",
+            "Create a Trial/Production key",
+            "Copy the key",
+            "Paste it in the box above",
+        ],
+    },
+    "Together.ai": {
+        "create_key_url": "https://api.together.xyz/settings/api-keys",
+        "key_label": "Together API key",
+        "key_hint": "together_...",
+        "steps": [
+            "Open Together settings → API Keys",
+            "Log in / create account",
+            "Create a new key",
+            "Copy the key",
+            "Paste it in the box above",
+        ],
+    },
+    "OpenRouter": {
+        "create_key_url": "https://openrouter.ai/keys",
+        "key_label": "OpenRouter API key",
+        "key_hint": "sk-or-...",
+        "steps": [
+            "Open OpenRouter Keys page",
+            "Log in / create account",
+            "Create a key (optional credit limit)",
+            "Copy the key",
+            "Paste it in the box above",
+        ],
+    },
+}
+
+# ----------------------------
+# Sidebar UI
 # ----------------------------
 with st.sidebar:
-    st.header("🔑 API Key")
+    st.header("🔐 API Provider + Key")
 
-    if "groq_api_key" not in st.session_state:
-        st.session_state.groq_api_key = ""
+    if "provider_name" not in st.session_state:
+        st.session_state.provider_name = "Groq"
+    if "api_key" not in st.session_state:
+        st.session_state.api_key = ""
 
-    st.session_state.groq_api_key = st.text_input(
-        "Paste your Groq API key",
-        value=st.session_state.groq_api_key,
+    st.session_state.provider_name = st.selectbox(
+        "Choose provider",
+        list(PROVIDERS.keys()),
+        index=list(PROVIDERS.keys()).index(st.session_state.provider_name),
+    )
+    provider = PROVIDERS[st.session_state.provider_name]
+
+    ui_link_button(f"⚡ Create {st.session_state.provider_name} API Key", provider["create_key_url"])
+
+    with st.expander("How to create the key (quick steps)"):
+        for i, step in enumerate(provider["steps"], start=1):
+            st.write(f"{i}. {step}")
+        st.caption("Heads up: “Free key” usually means free-tier/limited usage, not unlimited forever.")
+
+    st.divider()
+
+    st.session_state.api_key = st.text_input(
+        f"Paste your {provider['key_label']}",
+        value=st.session_state.api_key,
         type="password",
-        placeholder="gsk_...",
-        help="Paste your Groq API key here. It stays only in your current session.",
+        placeholder=provider["key_hint"],
     )
 
     # ✅ Test API key button
     if st.button("✅ Test API Key", use_container_width=True):
-        key = st.session_state.groq_api_key.strip()
+        key = st.session_state.api_key.strip()
+
         if not key:
             st.warning("Paste an API key first.")
+        elif st.session_state.provider_name != "Groq":
+            st.info("This demo app runs the tools using Groq only. Switch provider to Groq to test inside the app.")
         else:
             try:
                 test_client = Groq(api_key=key)
@@ -40,7 +169,7 @@ with st.sidebar:
                     temperature=0.0,
                 )
                 out = resp.choices[0].message.content.strip()
-                if "OK" in out:
+                if out == "OK":
                     st.success("API key works. OK")
                 else:
                     st.success(f"API key works. Response: {out}")
@@ -48,20 +177,27 @@ with st.sidebar:
                 st.error(f"Key test failed: {e}")
 
     st.divider()
-    st.header("⚙️ Settings")
-    model = st.selectbox(
-        "Model",
-        ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"],
-        index=0,
-    )
+    st.header("⚙️ Model Settings (Groq)")
+    model = st.selectbox("Model", ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"], index=0)
     temperature = st.slider("Creativity (temperature)", 0.0, 1.0, 0.3, 0.1)
 
-api_key = st.session_state.groq_api_key.strip()
+# ----------------------------
+# Enforce provider for this demo
+# ----------------------------
+if st.session_state.provider_name != "Groq":
+    st.info(
+        "You can use the sidebar to create API keys from many providers.\n\n"
+        "But this demo app currently runs the AI tools using **Groq** only.\n"
+        "Switch provider to **Groq** to use Summarizer / Idea Generator / Chatbot."
+    )
+    st.stop()
+
+api_key = st.session_state.api_key.strip()
 if not api_key:
     st.warning("Enter your Groq API key in the sidebar to start using the tools.")
     st.stop()
 
-# Create client per user session (do NOT cache globally)
+# Create Groq client for this user session (no global cache)
 client = Groq(api_key=api_key)
 
 def groq_chat(messages, max_tokens=700):
@@ -72,7 +208,6 @@ def groq_chat(messages, max_tokens=700):
         max_tokens=max_tokens,
     )
     return resp.choices[0].message.content
-
 
 # ----------------------------
 # Tabs: 3 tools
@@ -105,14 +240,13 @@ with tab1:
                     ],
                     max_tokens=500,
                 )
-
             st.markdown("### ✅ Summary")
             st.write(summary)
 
 # Tool 2: Idea Generator
 with tab2:
     st.subheader("💡 Idea Generator")
-    topic = st.text_input("Enter topic", placeholder="Example: content ideas for a coffee shop")
+    topic = st.text_input("Enter topic", placeholder="Example: Instagram reels for a coffee shop")
     idea_count = st.slider("Ideas", 3, 20, 10)
 
     if st.button("Generate ideas", use_container_width=True):
@@ -127,7 +261,6 @@ with tab2:
                     ],
                     max_tokens=700,
                 )
-
             st.markdown("### ✅ Ideas")
             st.write(ideas)
 
@@ -146,7 +279,6 @@ with tab3:
         ]
         st.rerun()
 
-    # display chat (skip system)
     for msg in st.session_state.chat_history:
         if msg["role"] in ("user", "assistant"):
             with st.chat_message(msg["role"]):
@@ -156,7 +288,7 @@ with tab3:
     if user_input:
         st.session_state.chat_history.append({"role": "user", "content": user_input})
 
-        # keep history short to reduce token usage
+        # Keep history short to reduce usage
         system_msg = st.session_state.chat_history[0:1]
         recent_msgs = [m for m in st.session_state.chat_history[1:] if m["role"] in ("user", "assistant")][-12:]
         messages = system_msg + recent_msgs
