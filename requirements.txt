@@ -1,2 +1,5 @@
 streamlit
+requests
 groq
+google-genai
+huggingface_hub
