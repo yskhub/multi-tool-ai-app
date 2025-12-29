@@ -22,6 +22,7 @@ This project uses **Python + Streamlit + Groq API** and is designed to be deploy
 
 ## 🧱 Tech Stack
 
+- VS Code
 - Python
 - Streamlit (UI)
 - Groq Python SDK (LLM API)
