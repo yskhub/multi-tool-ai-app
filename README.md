@@ -43,3 +43,38 @@ Instead, the user enters the API key manually in the app:
 
 ## 📂 Project Structure
 
+# multi-tool-ai-app
+# 🧰 Multi-Tool AI App (Streamlit + Groq)
+
+A single Streamlit web app with 3 AI tools:
+1) **Text Summarizer** . Paste long text → get a short summary  
+2) **Idea Generator** . Enter a topic → get multiple ideas  
+3) **Simple Chatbot** . Ask questions → get AI answers  
+
+This project uses **Python + Streamlit + Groq API** and is designed to be deployed on **Streamlit Community Cloud**.
+
+---
+
+## README Summary
+
+### 1) What does your app do?
+This app combines **3 AI tools in one Streamlit app**:
+- Summarize long text into short output
+- Generate ideas from a topic
+- Chatbot for Q&A with chat history  
+Users can use the app by providing an API key in the sidebar, then running any tool.
+
+### 2) Which AI did you use and why?
+I used **Groq** because it is fast, simple to integrate, and has strong free-tier friendly models for demos and testing.
+
+### 3) How can someone run your app locally?
+- Clone repo
+- Install requirements
+- Run the Streamlit app
+
+Example:
+```bash
+git clone https://github.com/yskhub/multi-tool-ai-app.git
+cd multi-tool-ai-app
+pip install -r requirements.txt
+streamlit run app.py
